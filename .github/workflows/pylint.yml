@@ -1,0 +1,14 @@
+name: Pylint
+
+on:
+  push:
+    branches:
+      - main  # Execute apenas em push para a branch main (ou master)
+  pull_request:  # Execute também em pull requests
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9", "3.10"]
