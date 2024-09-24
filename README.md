@@ -1,5 +1,3 @@
-## Análise de Altcoins com Python e Modelos de Linguagem
-
 Este repositório contém um notebook Google Colab que demonstra uma análise abrangente de altcoins, combinando técnicas de visualização de dados com o poder de modelos de linguagem avançados como GPT-4 e Llama 2.
 
 **Objetivo:**
