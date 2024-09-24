@@ -143,3 +143,199 @@ fig.show()
 
 plot_pca(df_altcoins_binance, 'Análise de Componentes Principais (PCA) - Binance')
 plot_pca(df_altcoins_github, 'Análise de Componentes Principais (PCA) - GitHub')
+
+!pip install together
+!pip install openai
+import re
+import openai
+import json
+
+from together import Together
+
+# Insira suas chaves API aqui
+openai.api_key = "KEY"
+together_api_key = "KEY"
+
+client = Together(api_key=together_api_key)
+
+def generate_candidate_prompts(task, prompt_example, response_example):
+    messages = [
+        {"role": "system", "content": """Você é um assistente de IA útil e inofensivo. Sua tarefa é gerar sete pares de prompt-resposta diversos e de alta qualidade para uma determinada tarefa, com base em um exemplo.
+
+        **Regras:**
+        1.  Garanta que os novos exemplos sejam exclusivos e cubram diferentes aspectos da tarefa.
+        2.  Eles devem ser bem escritos e precisos.
+        3.  Concentre-se em criar exemplos realistas e úteis.
+
+        Responda neste formato:
+        ```json
+        [
+          {
+            "prompt": "COLOQUE_O_PROMPT_AQUI",
+            "response": "COLOQUE_A_RESPOSTA_AQUI"
+          },
+          {
+            "prompt": "COLOQUE_O_PROMPT_AQUI",
+            "response": "COLOQUE_A_RESPOSTA_AQUI"
+          },
+          ...
+        ]
+        ```"""},
+        {"role": "user", "content": f"""
+        **Tarefa:** {task}
+
+        **Exemplo:**
+
+        **Prompt:**
+        {prompt_example}
+
+        **Resposta:**
+        {response_example}
+        """},
+    ]
+
+    completion = openai.ChatCompletion.create(  # Usando OpenAI para gerar exemplos
+        model="gpt-4",
+        messages=messages,
+        max_tokens=4000,
+        temperature=0.05
+    )
+
+    response_text = completion.choices[0].message.content
+
+    try:
+        prompts_and_responses = json.loads(response_text)
+    except json.JSONDecodeError:
+        print("Erro ao decodificar JSON. Texto da resposta:")
+        print(response_text)
+        prompts_and_responses = [] # Retorna lista vazia em caso de erro
+
+    return prompts_and_responses
+
+def generate_system_prompt(task, prompt_examples):
+    messages = [
+        {"role": "system", "content": """Você é um assistente de IA útil e inofensivo. Sua tarefa é criar um prompt de sistema conciso e eficaz para um modelo de linguagem grande, com base em uma determinada tarefa e um conjunto de exemplos de prompt-resposta.
+
+        **Regras:**
+        1. O prompt do sistema deve descrever com precisão a tarefa e o formato de saída desejado.
+        2. Deve ser claro, conciso e fácil para o modelo de linguagem entender.
+        3. Evite complexidade ou instruções desnecessárias.
+
+        Responda neste formato:
+
+        ```
+        ## Análise de Altcoins para Investidor Moderado com Horizonte de Longo Prazo (5 anos)
+
+
+**1. ETH (Ethereum)**
+
+**Plataforma:** Ethereum
+
+**Utilidade:** DeFi, NFTs, Web3
+
+**Análise:**
+
+A ETH é a segunda maior criptomoeda em market cap e possui um ecossistema vasto e em constante desenvolvimento. É considerada uma altcoin com grande potencial de crescimento no longo prazo, impulsionada pela adoção crescente de DeFi, NFTs e Web3.
+
+**Recomendação:**
+
+Comprar
+
+**Justificativa:**
+
+A ETH é uma escolha sólida para investidores de longo prazo que buscam crescimento de capital. O ecossistema Ethereum é robusto e possui uma grande comunidade de desenvolvedores e usuários.
+
+**Sugestão de estratégia:**
+
+Para a ETH, recomenda-se utilizar a estratégia DCA para reduzir o risco de entrada e aproveitar as possíveis flutuações de preço.
+
+
+**2. SOL (Solana)**
+
+**Plataforma:** Solana
+
+**Utilidade:** DeFi, NFTs, Web3
+
+**Análise:**
+
+A SOL é uma altcoin que ganhou popularidade por sua alta velocidade de transação e baixas taxas. É considerada uma concorrente da Ethereum e possui um ecossistema em crescimento.
+
+**Recomendação:**
+
+Comprar (com alocação moderada)
+
+**Justificativa:**
+
+A SOL possui um grande potencial de crescimento, mas ainda é uma altcoin relativamente nova e com maior risco em comparação com a ETH.
+
+**Sugestão de estratégia:**
+
+Para a SOL, recomenda-se utilizar a estratégia DCA e monitorar o desenvolvimento do ecossistema Solana.
+
+
+**3. ADA (Cardano)**
+
+**Plataforma:** Cardano
+
+**Utilidade:** DeFi, NFTs, Contratos inteligentes
+
+**Análise:**
+
+A ADA é uma altcoin que se destaca por sua abordagem científica e foco em segurança e escalabilidade. É considerada uma concorrente da Ethereum e possui um ecossistema em desenvolvimento.
+
+**Recomendação:**
+
+Comprar (com alocação moderada)
+
+**Justificativa:**
+
+A ADA possui um grande potencial de crescimento, mas ainda está em fase de desenvolvimento e sua adoção em massa ainda é incerta.
+
+**Sugestão de estratégia:**
+
+Para a ADA, recomenda-se utilizar a estratégia DCA e acompanhar o desenvolvimento do ecossistema Cardano.
+
+        ```"""},
+        {"role": "user", "content": f"""
+        **Tarefa:** {task}
+
+        **Exemplos de Prompt-Resposta:**
+        ```json
+        {json.dumps(prompt_examples, indent=2)}
+        ```
+        """},
+    ]
+
+    completion = openai.ChatCompletion.create(  # Usando OpenAI para gerar o prompt do sistema
+        model="gpt-4",
+        messages=messages,
+        max_tokens=1000,
+        temperature=0.05
+    )
+
+    response_text = completion.choices[0].message.content
+    system_prompt = response_text.strip()
+
+    return system_prompt
+
+def test_llama(generated_examples, prompt_example, system_prompt):
+    messages = [{"role": "system", "content": system_prompt}]
+
+    for example in generated_examples:
+        messages.append({"role": "user", "content": example['prompt']})
+        messages.append({"role": "assistant", "content": example['response']})
+
+    messages.append({"role": "user", "content": prompt_example.strip()})
+
+    completion = client.chat.completions.create(
+        model="meta-llama/Llama-2-70b-chat-hf",
+        messages=messages,
+        max_tokens=2000,
+        temperature=0.05
+    )
+
+    response_text = completion.choices[0].message.content
+
+    return response_text
+
+# ... (Restante do código - task, prompt_example, response_example, debate, etc. - permanece o mesmo) ...
